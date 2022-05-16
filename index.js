@@ -16,12 +16,6 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
-// client.connect((err) => {
-//   const collection = client.db("test").collection("devices");
-//   // perform actions on the collection object
-//   console.log("DV CON");
-//   client.close();
-// });
 
 async function run() {
   try {
@@ -70,6 +64,41 @@ async function run() {
     app.get("/services", async (req, res) => {
       const services = await servicesCollection.find({}).toArray();
       res.send(services);
+    });
+
+    // Get available services
+    app.get("/availableServices", async (req, res) => {
+      const date = req?.query?.date;
+
+      // Step-1 Get all services
+      const allServices = await servicesCollection.find({}).toArray();
+
+      // Step-2 Get that days bookings
+      const bookedAppointsOnThatDay = await bookedAppointmentsCollection
+        .find({ date })
+        .toArray();
+
+      // Get bookings for each service
+      allServices.forEach((service) => {
+        // Get all bookings for this service
+        const bookingsForThisService = bookedAppointsOnThatDay.filter(
+          (b) => b.treatmentName === service.treatmentName
+        );
+
+        // Get booked slots for this service
+        const bookedSlotsForThisService = bookingsForThisService.map(
+          (s) => s.slot
+        );
+
+        // Get available slots for this service
+        const availableSlotsForThisService = service.slots.filter(
+          (slot) => !bookedSlotsForThisService.includes(slot)
+        );
+
+        service.slots = availableSlotsForThisService;
+      });
+
+      res.send(allServices);
     });
   } finally {
     // await client.close()
