@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 
 const port = process.env.PORT || 5000;
 
@@ -105,9 +106,11 @@ async function run() {
       res.send(allServices);
     });
 
-    // insert or update a user into DB
-    app.put("/user", async (req, res) => {
+    // GET token
+    app.post("/token", async (req, res) => {
       const user = req.body;
+
+      const email = user?.email;
 
       const filter = { email: user?.email };
 
@@ -123,7 +126,9 @@ async function run() {
         options
       );
 
-      res.send(result);
+      const accessToken = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET);
+
+      res.send([result, accessToken]);
     });
   } finally {
     // await client.close()
