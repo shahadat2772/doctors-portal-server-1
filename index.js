@@ -10,6 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const query = require("express/lib/middleware/query");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.1wx8p.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -31,6 +32,9 @@ async function run() {
     const servicesCollection = client
       .db("doctors-portal-1")
       .collection("services");
+
+    // All users collection
+    const usersCollection = client.db("doctors-portal-1").collection("users");
 
     // Posting booked appointment
     app.post("/bookAppointment", async (req, res) => {
@@ -99,6 +103,27 @@ async function run() {
       });
 
       res.send(allServices);
+    });
+
+    // insert or update a user into DB
+    app.put("/user", async (req, res) => {
+      const user = req.body;
+
+      const filter = { email: user?.email };
+
+      const options = { upsert: true };
+
+      const updateDoc = {
+        $set: user,
+      };
+
+      const result = await usersCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+
+      res.send(result);
     });
   } finally {
     // await client.close()
