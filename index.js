@@ -126,16 +126,16 @@ async function run() {
 
     // GET token
     app.put("/token", async (req, res) => {
-      const user = req.body;
+      const { currentUser } = req.body;
 
-      const email = user?.email;
+      const email = currentUser?.email;
 
-      const filter = { email: user?.email };
+      const filter = { email };
 
       const options = { upsert: true };
 
       const updateDoc = {
-        $set: user,
+        $set: currentUser,
       };
 
       const result = await usersCollection.updateOne(
@@ -163,6 +163,43 @@ async function run() {
         .find({ email })
         .toArray();
       res.send(appointments);
+    });
+
+    app.get("/users", verifyJWT, async (req, res) => {
+      const users = await usersCollection.find({}).toArray();
+
+      res.send(users);
+    });
+
+    // Make admin API
+    app.put("/makeAdmin", verifyJWT, async (req, res) => {
+      // Requester Email
+      const { email } = req.body;
+
+      const updatedUser = {
+        email: email,
+        admin: "admin",
+      };
+
+      const updateDoc = {
+        $set: updatedUser,
+      };
+
+      const result = await usersCollection.updateOne({ email }, updateDoc);
+      res.send(result);
+    });
+
+    // Admin checker
+    app.post("/isAdmin", async (req, res) => {
+      const { currentUserEmail } = req.body;
+
+      console.log(currentUserEmail);
+
+      const user = await usersCollection.findOne({ email: currentUserEmail });
+
+      const admin = user?.admin;
+
+      res.send({ admin: admin });
     });
   } finally {
     // await client.close()
