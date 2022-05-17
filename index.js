@@ -10,6 +10,24 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).send({ message: "unauthorized" });
+  }
+
+  const accessToken = authHeader.split(" ")[1];
+
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
+
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const query = require("express/lib/middleware/query");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.1wx8p.mongodb.net/?retryWrites=true&w=majority`;
@@ -107,7 +125,7 @@ async function run() {
     });
 
     // GET token
-    app.post("/token", async (req, res) => {
+    app.put("/token", async (req, res) => {
       const user = req.body;
 
       const email = user?.email;
@@ -129,6 +147,22 @@ async function run() {
       const accessToken = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET);
 
       res.send([result, accessToken]);
+    });
+
+    // Get booked appointments by email
+    app.get("/appointments/:email", verifyJWT, async (req, res) => {
+      const email = req?.params?.email;
+
+      const requesterEmail = req.decoded;
+
+      console.log(requesterEmail);
+
+      console.log(email);
+
+      const appointments = await bookedAppointmentsCollection
+        .find({ email })
+        .toArray();
+      res.send(appointments);
     });
   } finally {
     // await client.close()
