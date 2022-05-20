@@ -55,6 +55,23 @@ async function run() {
     // All users collection
     const usersCollection = client.db("doctors-portal-1").collection("users");
 
+    // verifyAdmin
+    async function verifyAdmin(req, res, next) {
+      const requesterEmail = req?.decoded?.email;
+      console.log(requesterEmail);
+
+      const user = await usersCollection.findOne({ email: requesterEmail });
+
+      console.log(user);
+
+      if (user?.role === "admin") {
+        console.log("Yah admin", user);
+        next();
+      } else {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+    }
+
     // Posting booked appointment
     app.post("/bookAppointment", async (req, res) => {
       const bookedAppointment = req.body;
@@ -72,7 +89,6 @@ async function run() {
       });
 
       if (exists) {
-        console.log(exists);
         res.status(403).send({ message: "already booked" });
         return;
       } else {
@@ -155,10 +171,6 @@ async function run() {
 
       const requesterEmail = req.decoded;
 
-      console.log(requesterEmail);
-
-      console.log(email);
-
       const appointments = await bookedAppointmentsCollection
         .find({ email })
         .toArray();
@@ -172,17 +184,14 @@ async function run() {
     });
 
     // Make admin API
-    app.put("/makeAdmin", verifyJWT, async (req, res) => {
+    app.put("/makeAdmin", verifyJWT, verifyAdmin, async (req, res) => {
       // Requester Email
       const { email } = req.body;
 
-      const updatedUser = {
-        email: email,
-        admin: "admin",
-      };
-
       const updateDoc = {
-        $set: updatedUser,
+        $set: {
+          role: "admin",
+        },
       };
 
       const result = await usersCollection.updateOne({ email }, updateDoc);
@@ -193,11 +202,9 @@ async function run() {
     app.post("/isAdmin", async (req, res) => {
       const { currentUserEmail } = req.body;
 
-      console.log(currentUserEmail);
-
       const user = await usersCollection.findOne({ email: currentUserEmail });
 
-      const admin = user?.admin;
+      const admin = user?.role;
 
       res.send({ admin: admin });
     });
