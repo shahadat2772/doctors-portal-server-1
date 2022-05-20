@@ -230,6 +230,29 @@ async function run() {
       const appointment = await bookedAppointmentsCollection.findOne(query);
       res.send(appointment);
     });
+
+    // save payment info
+    app.patch("/payment", verifyJWT, async (req, res) => {
+      const { transactionId, appointmentId } = req.body;
+
+      console.log(transactionId, appointmentId);
+
+      const filter = { _id: ObjectId(appointmentId) };
+
+      const updateDoc = {
+        $set: {
+          paid: "true",
+          transactionId: transactionId,
+        },
+      };
+
+      const result = await bookedAppointmentsCollection.updateOne(
+        filter,
+        updateDoc
+      );
+
+      res.send(result);
+    });
   } finally {
     // await client.close()
   }
