@@ -3,8 +3,11 @@ const app = express();
 require("dotenv").config();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-
+const { ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
+const stripe = require("stripe")(
+  "sk_test_51L105BIxM8sRxo2m2ImDa0Dfed0uNX24xpabivNaB9S2g0gBEqod8R4YCQCTQIPDhQkfUHsTEbckhA3lB7A0jW60006zgu39kC"
+);
 
 // MiddleWere
 app.use(cors());
@@ -58,11 +61,8 @@ async function run() {
     // verifyAdmin
     async function verifyAdmin(req, res, next) {
       const requesterEmail = req?.decoded?.email;
-      console.log(requesterEmail);
 
       const user = await usersCollection.findOne({ email: requesterEmail });
-
-      console.log(user);
 
       if (user?.role === "admin") {
         console.log("Yah admin", user);
@@ -71,6 +71,20 @@ async function run() {
         return res.status(403).send({ message: "forbidden access" });
       }
     }
+
+    // Create payment intent (send client secret to fondend)
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const payableAmount = price * 100;
+
+      const paymentIntents = await stripe.paymentIntents.create({
+        amount: payableAmount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({ clientSecret: paymentIntents.client_secret });
+    });
 
     // Posting booked appointment
     app.post("/bookAppointment", async (req, res) => {
@@ -207,6 +221,14 @@ async function run() {
       const admin = user?.role;
 
       res.send({ admin: admin });
+    });
+
+    // GEt a appointment by id
+    app.get("/appointmentById/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const appointment = await bookedAppointmentsCollection.findOne(query);
+      res.send(appointment);
     });
   } finally {
     // await client.close()
