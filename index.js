@@ -70,7 +70,6 @@ async function run() {
       const user = await usersCollection.findOne({ email: requesterEmail });
 
       if (user?.role === "admin") {
-        console.log("Yah admin", user);
         next();
       } else {
         return res.status(403).send({ message: "forbidden access" });
@@ -250,24 +249,37 @@ async function run() {
     app.patch("/payment", verifyJWT, async (req, res) => {
       const { transactionId, appointmentId } = req.body;
 
-      console.log(transactionId, appointmentId);
-
       const filter = { _id: ObjectId(appointmentId) };
-
       const updateDoc = {
         $set: {
           paid: "true",
           transactionId: transactionId,
         },
       };
-
       const result = await bookedAppointmentsCollection.updateOne(
         filter,
         updateDoc
       );
-
       res.send(result);
     });
+
+    app.get("/doctors", verifyJWT, verifyAdmin, async (req, res) => {
+      const doctors = await doctorsCollection.find({}).toArray();
+      res.send(doctors);
+    });
+
+    // Delete DOCTOR
+    app.delete(
+      "/deleteDoctor/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: ObjectId(id) };
+        const result = await doctorsCollection.deleteOne(filter);
+        res.send(result);
+      }
+    );
   } finally {
     // await client.close()
   }
