@@ -58,6 +58,11 @@ async function run() {
     // All users collection
     const usersCollection = client.db("doctors-portal-1").collection("users");
 
+    // Doctors collection
+    const doctorsCollection = client
+      .db("doctors-portal-1")
+      .collection("doctors");
+
     // verifyAdmin
     async function verifyAdmin(req, res, next) {
       const requesterEmail = req?.decoded?.email;
@@ -115,8 +120,18 @@ async function run() {
 
     // Get all services
     app.get("/services", async (req, res) => {
-      const services = await servicesCollection.find({}).toArray();
+      const services = await servicesCollection
+        .find({})
+        .project({ treatmentName: 1 })
+        .toArray();
       res.send(services);
+    });
+
+    // Add Doctor
+    app.post("/addDoctor", verifyJWT, async (req, res) => {
+      const docInfo = req.body;
+      const result = await doctorsCollection.insertOne(docInfo);
+      res.send(result);
     });
 
     // Get available services
