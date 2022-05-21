@@ -296,6 +296,13 @@ async function run() {
         res.send(result);
       }
     );
+
+    // Load Doc by specialty
+    app.get("/doctor/:specialty", async (req, res) => {
+      const specialty = req.params.specialty;
+      const result = await doctorsCollection.findOne({ specialty: specialty });
+      res.send(result);
+    });
   } finally {
     // await client.close()
   }
