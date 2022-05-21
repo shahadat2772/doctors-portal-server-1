@@ -168,7 +168,7 @@ async function run() {
       res.send(allServices);
     });
 
-    // GET token
+    // GET token and setUser also set the role for doctors
     app.put("/token", async (req, res) => {
       const { currentUser } = req.body;
 
@@ -187,6 +187,22 @@ async function run() {
         updateDoc,
         options
       );
+
+      // checking if this user is a doctor
+      const isDoctor = await doctorsCollection.findOne(filter);
+
+      if (isDoctor) {
+        const docRoleAdded = {
+          $set: {
+            role: "doctor",
+          },
+        };
+
+        const docRoleResult = await usersCollection.updateOne(
+          filter,
+          docRoleAdded
+        );
+      }
 
       const accessToken = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET);
 
