@@ -242,15 +242,15 @@ async function run() {
       res.send(result);
     });
 
-    // Admin checker
+    // ADMIN CHECKER
     app.post("/isAdmin", async (req, res) => {
       const { currentUserEmail } = req.body;
 
       const user = await usersCollection.findOne({ email: currentUserEmail });
 
-      const admin = user?.role;
+      const role = user?.role;
 
-      res.send({ admin: admin });
+      res.send({ role: role });
     });
 
     // GEt a appointment by id
@@ -301,7 +301,20 @@ async function run() {
     app.get("/doctor/:specialty", async (req, res) => {
       const specialty = req.params.specialty;
       const result = await doctorsCollection.findOne({ specialty: specialty });
-      res.send(result);
+      if (result) {
+        res.send(result);
+      }
+    });
+
+    // Checking DOCTOR
+    app.post("/isDoctor", async (req, res) => {
+      const { currentUserEmail } = req.body;
+
+      const user = await usersCollection.findOne({ email: currentUserEmail });
+
+      const role = user?.role;
+
+      res.send({ role: role });
     });
   } finally {
     // await client.close()
